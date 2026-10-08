@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="ro" spellcheck="false">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Studiu Fractali</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #07070f;
+      --surface: #0e0e1c;
+      --surface2: #14142a;
+      --border: rgba(180, 140, 255, .13);
+      --accent: #b48cff;
+      --accent2: #7c5cbf;
+      --text: #ede8ff;
+      --muted: #7a7490;
+      --danger: #ff6b6b;
+      --star-on: #f5c842;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      --ease: cubic-bezier(.4, 0, .2, 1);
+      --shadow: 0 4px 24px rgba(0, 0, 0, .5);
+    }
+
+    html {
+      height: 100%;
+      background: var(--bg);
+    }
+
+    body {
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      top: -30%;
+      left: -10%;
+      width: 60%;
+      height: 60%;
+      background: radial-gradient(ellipse, rgba(124, 92, 191, .1) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      min-height: 100dvh;
+      display: flex;
+      justify-content: center;
+      padding: calc(24px + env(safe-area-inset-top)) 16px calc(32px + env(safe-area-inset-bottom));
+    }
+
+    .frame {
+      width: 100%;
+      max-width: 520px;
+    }
+
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      animation: fadeUp .28s var(--ease) both;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+    }
+
+    .field-label {
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    select {
+      appearance: none;
+      -webkit-appearance: none;
+      background: var(--surface2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a7490' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 13px center;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      padding: 14px 38px 14px 13px;
+      font-family: var(--font);
+      font-size: 1rem;
+      width: 100%;
+      cursor: pointer;
+      transition: border-color .18s var(--ease);
+    }
+
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    select option {
+      background: #14142a;
+    }
+
+    .radio-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .radio-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      cursor: pointer;
+      transition: border-color .16s var(--ease), background .16s var(--ease);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .radio-item:active {
+      background: #1e1e38;
+    }
+
+    .radio-item.selected {
+      border-color: var(--accent);
+      background: #18123a;
+    }
+
+    .radio-item input[type=radio] {
+      display: none;
+    }
+
+    .radio-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid var(--muted);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color .16s var(--ease), background .16s var(--ease);
+    }
+
+    .radio-item.selected .radio-dot {
+      border-color: var(--accent);
+      background: var(--accent);
+      box-shadow: 0 0 10px rgba(180, 140, 255, .4);
+    }
+
+    .radio-item.selected .radio-dot::after {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--bg);
+    }
+
+    .radio-text {
+      font-size: .95rem;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      flex: 1;
+    }
+
+    .radio-text i {
+      color: var(--muted);
+      width: 14px;
+      text-align: center;
+      font-size: .85rem;
+    }
+
+    .intro-hero {
+      text-align: center;
+      padding: 36px 18px 28px;
+    }
+
+    .hero-icon {
+      font-size: 2.8rem;
+      color: var(--accent);
+      display: block;
+      margin-bottom: 16px;
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        filter: drop-shadow(0 0 8px rgba(180, 140, 255, .35));
+      }
+
+      50% {
+        filter: drop-shadow(0 0 22px rgba(180, 140, 255, .75));
+      }
+    }
+
+    .intro-hero h1 {
+      font-size: 1.9rem;
+      font-weight: 800;
+      letter-spacing: -.025em;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--text) 40%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .intro-hero p {
+      color: var(--muted);
+      font-size: .9rem;
+      line-height: 1.65;
+      max-width: 340px;
+      margin: 0 auto;
+    }
+
+    .intro-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .load-track {
+      height: 3px;
+      background: var(--surface2);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .load-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      border-radius: 99px;
+      width: 0%;
+      transition: width .3s var(--ease);
+    }
+
+    .progress-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      box-shadow: var(--shadow);
+    }
+
+    .progress-label {
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--accent);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 80px;
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 4px;
+      background: var(--surface2);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      border-radius: 99px;
+      transition: width .45s var(--ease);
+      box-shadow: 0 0 8px rgba(180, 140, 255, .35);
+    }
+
+    .progress-count {
+      font-size: .68rem;
+      font-weight: 600;
+      color: var(--muted);
+      white-space: nowrap;
+      min-width: 42px;
+      text-align: right;
+    }
+
+    .img-wrap {
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      aspect-ratio: 1 / 1;
+      width: 100%;
+      position: relative;
+      box-shadow: var(--shadow);
+    }
+
+    .img-ph {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: .85rem;
+      background: var(--surface);
+      transition: opacity .25s ease;
+      z-index: 1;
+    }
+
+    .img-ph.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 30px;
+      height: 30px;
+      border: 3px solid var(--surface2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .img-wrap img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity .3s ease;
+    }
+
+    .img-wrap img.loaded {
+      opacity: 1;
+    }
+
+    .questions-card {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .q-label {
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 11px;
+    }
+
+    .stars {
+      display: flex;
+      justify-content: center;
+      gap: 2px;
+    }
+
+    .star {
+      font-size: 2.2rem;
+      cursor: pointer;
+      color: #222038;
+      transition: color .13s var(--ease), transform .13s var(--ease);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      padding: 4px 6px;
+      line-height: 1;
+    }
+
+    .star.on {
+      color: var(--star-on);
+      filter: drop-shadow(0 0 4px rgba(245, 200, 66, .45));
+    }
+
+    .star:active {
+      transform: scale(1.15);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 16px 20px;
+      border-radius: var(--radius-sm);
+      border: none;
+      font-family: var(--font);
+      font-size: .95rem;
+      font-weight: 700;
+      letter-spacing: .02em;
+      cursor: pointer;
+      transition: box-shadow .18s var(--ease), transform .13s var(--ease), opacity .18s;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      min-height: 52px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      color: #07070f;
+      box-shadow: 0 4px 18px rgba(180, 140, 255, .22);
+    }
+
+    .btn-primary:active:not(:disabled) {
+      transform: scale(.98);
+      box-shadow: 0 2px 10px rgba(180, 140, 255, .15);
+    }
+
+    .btn-primary:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-sub {
+      font-size: .72rem;
+      font-weight: 500;
+      opacity: .75;
+      letter-spacing: .01em;
+    }
+
+    .btn-primary.loading::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .12), transparent);
+      animation: shimmer .9s infinite;
+    }
+
+    @keyframes shimmer {
+      from {
+        transform: translateX(-100%);
+      }
+
+      to {
+        transform: translateX(100%);
+      }
+    }
+
+    .error {
+      font-size: .83rem;
+      color: var(--danger);
+      display: none;
+      padding: 11px 14px;
+      background: rgba(255, 107, 107, .07);
+      border: 1px solid rgba(255, 107, 107, .16);
+      border-radius: var(--radius-sm);
+      text-align: center;
+      line-height: 1.45;
+    }
+
+    .error.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+
+    .done-card {
+      text-align: center;
+      padding: 64px 20px;
+    }
+
+    .done-icon {
+      font-size: 3.5rem;
+      color: var(--accent);
+      display: block;
+      margin-bottom: 20px;
+      animation: popIn .45s var(--ease) both;
+    }
+
+    @keyframes popIn {
+      0% {
+        transform: scale(0);
+        opacity: 0;
+      }
+
+      65% {
+        transform: scale(1.18);
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .done-card h2 {
+      font-size: 1.9rem;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, var(--text), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .done-card p {
+      color: var(--muted);
+      font-size: .9rem;
+      line-height: 1.8;
+    }
+
+    @media (min-width: 600px) {
+      .card {
+        padding: 26px 24px;
+      }
+
+      .star {
+        font-size: 2.5rem;
+        padding: 4px 8px;
+      }
+
+      .intro-hero h1 {
+        font-size: 2.1rem;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .star {
+        font-size: 1.9rem;
+        padding: 3px 4px;
+      }
+
+      .intro-hero h1 {
+        font-size: 1.65rem;
+      }
+
+      .app {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <div class="frame">
+
+      <div id="s-intro" class="screen active">
+        <div class="card intro-hero">
+          <i class="fa-solid fa-infinity hero-icon"></i>
+          <h1>Studiu Fractali</h1>
+          <p>Vei evalua o serie de imagini fractale.<br>Te rugăm să răspunzi relaxat la fiecare întrebare.</p>
+        </div>
+
+        <div class="card">
+          <div class="intro-fields">
+            <div>
+              <div class="field-label"><i class="fa-solid fa-calendar-days"></i> Vârsta ta</div>
+              <select id="sel-age">
+            <option value="">— Selectează —</option>
+            <option value="<30">Sub 30 de ani</option>
+            <option value="30-60">Între 30 și 60 de ani</option>
+            <option value=">60">Peste 60 de ani</option>
+          </select>
+            </div>
+
+            <div class="divider"></div>
+
+            <div>
+              <div class="field-label"><i class="fa-solid fa-user-tag"></i> Profilul tău</div>
+              <div class="radio-grid" id="profile-group">
+                <label class="radio-item" onclick="selectRadio(this,'profile','uman')">
+              <input type="radio" name="profile" value="uman">
+              <span class="radio-dot"></span>
+              <span class="radio-text"><i class="fa-solid fa-palette"></i> Uman — arte, litere, social</span>
+            </label>
+                <label class="radio-item" onclick="selectRadio(this,'profile','tehnic')">
+              <input type="radio" name="profile" value="tehnic">
+              <span class="radio-dot"></span>
+              <span class="radio-text"><i class="fa-solid fa-microchip"></i> Tehnic — știință, IT, inginerie</span>
+            </label>
+              </div>
+            </div>
+
+            <div id="intro-error" class="error">
+              <i class="fa-solid fa-circle-exclamation"></i> Te rugăm completează toate câmpurile.
+            </div>
+
+            <div class="load-track">
+              <div class="load-fill" id="load-fill"></div>
+            </div>
+
+            <button class="btn btn-primary" id="btn-start" onclick="startSurvey()" disabled>
+          <span class="btn-row"><i class="fa-solid fa-spinner fa-spin"></i> Se pregătesc imaginile…</span>
+          <span class="btn-sub" id="btn-start-sub">0 / 0</span>
+        </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="s-survey" class="screen">
+        <div class="progress-wrap">
+          <span class="progress-label">
+        <i class="fa-solid fa-images"></i>
+        <span id="lbl-left">—</span>
+          </span>
+          <div class="progress-track">
+            <div class="progress-fill" id="prog-fill" style="width:0%"></div>
+          </div>
+          <span class="progress-count" id="lbl-count">0 / —</span>
+        </div>
+
+        <div class="img-wrap">
+          <div class="img-ph" id="img-ph">
+            <div class="spinner"></div>
+            <span>Se încarcă…</span>
+          </div>
+          <img id="survey-img" alt="Fractal">
+        </div>
+
+        <div class="card questions-card">
+          <div>
+            <div class="q-label"><i class="fa-solid fa-heart"></i> Cât de mult îți place imaginea?</div>
+            <div class="stars" id="stars-like">
+              <span class="star" onclick="setStar('like',1)"><i class="fa-solid fa-star"></i></span>
+              <span class="star" onclick="setStar('like',2)"><i class="fa-solid fa-star"></i></span>
+              <span class="star" onclick="setStar('like',3)"><i class="fa-solid fa-star"></i></span>
+              <span class="star" onclick="setStar('like',4)"><i class="fa-solid fa-star"></i></span>
+              <span class="star" onclick="setStar('like',5)"><i class="fa-solid fa-star"></i></span>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div>
+            <div class="q-label"><i class="fa-solid fa-brain"></i> Cât de complexă este imaginea?</div>
+            <div class="stars" id="stars-cpx">
+              <span class="star" onclick="setStar('cpx',1)"><i class="fa-solid fa-star"></i></span>
+              <span class="star" onclick="setStar('cpx',2)"><i class="fa-solid fa-star"></i></span>
+              <span class="star" onclick="setStar('cpx',3)"><i class="fa-solid fa-star"></i></span>
+              <span class="star" onclick="setStar('cpx',4)"><i class="fa-solid fa-star"></i></span>
+              <span class="star" onclick="setStar('cpx',5)"><i class="fa-solid fa-star"></i></span>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div>
+            <div class="q-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Cine crezi că este autorul?</div>
+            <div class="radio-grid" id="author-group">
+              <label class="radio-item" onclick="selectRadio(this,'author','AN')">
+            <input type="radio" name="author" value="AN">
+            <span class="radio-dot"></span>
+            <span class="radio-text"><i class="fa-solid fa-paw"></i> Animal</span>
+          </label>
+              <label class="radio-item" onclick="selectRadio(this,'author','AI')">
+            <input type="radio" name="author" value="AI">
+            <span class="radio-dot"></span>
+            <span class="radio-text"><i class="fa-solid fa-robot"></i> Inteligență Artificială</span>
+          </label>
+              <label class="radio-item" onclick="selectRadio(this,'author','AM')">
+            <input type="radio" name="author" value="AM">
+            <span class="radio-dot"></span>
+            <span class="radio-text"><i class="fa-solid fa-person"></i> Amator</span>
+          </label>
+              <label class="radio-item" onclick="selectRadio(this,'author','AR')">
+            <input type="radio" name="author" value="AR">
+            <span class="radio-dot"></span>
+            <span class="radio-text"><i class="fa-solid fa-paintbrush"></i> Artist</span>
+          </label>
+              <label class="radio-item" onclick="selectRadio(this,'author','AC')">
+            <input type="radio" name="author" value="AC">
+            <span class="radio-dot"></span>
+            <span class="radio-text"><i class="fa-solid fa-award"></i> Artist celebru</span>
+          </label>
+            </div>
+          </div>
+
+          <div id="survey-error" class="error">
+            <i class="fa-solid fa-circle-exclamation"></i> Te rugăm să răspunzi la toate întrebările.
+          </div>
+
+          <button class="btn btn-primary" id="btn-next" onclick="nextImage()">
+        <span class="btn-row"><i class="fa-solid fa-arrow-right"></i> Următoarea imagine</span>
+      </button>
+        </div>
+      </div>
+
+      <div id="s-done" class="screen">
+        <div class="card done-card">
+          <i class="fa-solid fa-circle-check done-icon"></i>
+          <h2>Mulțumim!</h2>
+          <p>Ai evaluat toate imaginile cu succes.<br>Răspunsurile tale au fost înregistrate.<br><br>Poți închide această pagină.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const VALID_AUTHORS = ['AI', 'AN', 'AM', 'AR', 'AC'];
+
+  let images       = [];
+  let order        = [];
+  let current      = 0;
+  let userAge      = '';
+  let userProf     = '';
+  let collected    = [];
+  let ans          = { like: 0, cpx: 0, author: '' };
+  let preloadState = {};
+  let preloadSrc   = {};
+  let loadedCount  = 0;
+
+  window.onload = function () {
+    google.script.run
+      .withSuccessHandler(function () {
+        google.script.run
+          .withSuccessHandler(onImagesReady)
+          .withFailureHandler(fatalError)
+          .getImages();
+      })
+      .withFailureHandler(fatalError)
+      .initSheet();
+  };
+
+  function onImagesReady(data) {
+    images = data;
+    order  = images.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    document.getElementById('btn-start-sub').textContent = '0 / ' + images.length;
+    preloadAll();
+  }
+
+  function preloadAll() {
+    const total = images.length;
+    images.forEach((_, idx) => {
+      const img = images[order[idx]];
+      preloadState[img.id] = 'loading';
+      const el = new Image();
+      el.onload = () => {
+        preloadState[img.id] = 'done';
+        preloadSrc[img.id]   = el.src;
+        onImageSettled(total);
+      };
+      el.onerror = () => {
+        preloadState[img.id] = 'error';
+        onImageSettled(total);
+      };
+      el.src = img.url;
+    });
+  }
+
+  function onImageSettled(total) {
+    loadedCount++;
+    const pct = (loadedCount / total) * 100;
+    document.getElementById('load-fill').style.width   = pct + '%';
+    document.getElementById('btn-start-sub').textContent = loadedCount + ' / ' + total;
+    if (loadedCount === total) {
+      const btn = document.getElementById('btn-start');
+      btn.disabled = false;
+      btn.innerHTML = '<span class="btn-row"><i class="fa-solid fa-play"></i> Începe studiul</span>';
+    }
+  }
+
+  function fatalError(e) {
+    alert('Eroare la inițializare. Reîncarcă pagina.');
+    console.error(e);
+  }
+
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function startSurvey() {
+    userAge  = document.getElementById('sel-age').value;
+    userProf = document.querySelector('input[name="profile"]:checked')?.value || '';
+    const err = document.getElementById('intro-error');
+    if (!userAge || !userProf) { err.classList.add('show'); return; }
+    err.classList.remove('show');
+    show('s-survey');
+    renderImage();
+  }
+
+  function renderImage() {
+    const total = images.length;
+    const left  = total - current;
+
+    document.getElementById('lbl-left').textContent  = left + ' rămase';
+    document.getElementById('lbl-count').textContent = current + ' / ' + total;
+    document.getElementById('prog-fill').style.width = ((current / total) * 100) + '%';
+
+    ans = { like: 0, cpx: 0, author: '' };
+    clearStars('like');
+    clearStars('cpx');
+    document.querySelectorAll('#author-group .radio-item').forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('input[name="author"]').forEach(r => r.checked = false);
+    document.getElementById('survey-error').classList.remove('show');
+
+    const imgEl = document.getElementById('survey-img');
+    const ph    = document.getElementById('img-ph');
+    const img   = images[order[current]];
+
+    imgEl.classList.remove('loaded');
+    ph.classList.remove('hidden');
+    ph.innerHTML = '<div class="spinner"></div><span>Se încarcă…</span>';
+
+    const btn = document.getElementById('btn-next');
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    btn.innerHTML = current === total - 1
+      ? '<span class="btn-row"><i class="fa-solid fa-check"></i> Finalizează</span>'
+      : '<span class="btn-row"><i class="fa-solid fa-arrow-right"></i> Următoarea imagine</span>';
+
+    function showImage(src) {
+      imgEl.src = src;
+      imgEl.classList.add('loaded');
+      ph.classList.add('hidden');
+    }
+
+    function showError() {
+      ph.innerHTML =
+        '<i class="fa-solid fa-triangle-exclamation" style="color:var(--danger);font-size:1.3rem"></i>' +
+        '<span style="color:var(--danger);font-size:.84rem">Imaginea nu s-a putut încărca.</span>';
+    }
+
+    const state = preloadState[img.id];
+    if (state === 'done') {
+      showImage(preloadSrc[img.id]);
+    } else if (state === 'error') {
+      showError();
+    } else {
+      const poll = setInterval(() => {
+        const s = preloadState[img.id];
+        if (s === 'done')  { clearInterval(poll); showImage(preloadSrc[img.id]); }
+        if (s === 'error') { clearInterval(poll); showError(); }
+      }, 50);
+    }
+  }
+
+  function setStar(type, value) {
+    ans[type] = value;
+    const id = type === 'like' ? 'stars-like' : 'stars-cpx';
+    document.querySelectorAll('#' + id + ' .star').forEach((s, i) => s.classList.toggle('on', i < value));
+  }
+
+  function clearStars(type) {
+    const id = type === 'like' ? 'stars-like' : 'stars-cpx';
+    document.querySelectorAll('#' + id + ' .star').forEach(s => s.classList.remove('on'));
+  }
+
+  function selectRadio(labelEl, name, value) {
+    labelEl.closest('.radio-grid').querySelectorAll('.radio-item').forEach(el => el.classList.remove('selected'));
+    labelEl.classList.add('selected');
+    labelEl.querySelector('input[type=radio]').checked = true;
+    if (name === 'author') ans.author = value;
+  }
+
+  function nextImage() {
+    const authorVal = document.querySelector('input[name="author"]:checked')?.value || '';
+    const err = document.getElementById('survey-error');
+    if (!ans.like || !ans.cpx || !authorVal) { err.classList.add('show'); return; }
+    err.classList.remove('show');
+
+    collected.push({
+      img_id:                  images[order[current]].id,
+      img_appreciation_rating: ans.like,
+      img_complexity_rating:   ans.cpx,
+      img_author_guess:        authorVal
+    });
+
+    current++;
+    if (current >= images.length) {
+      submitAll();
+    } else {
+      renderImage();
+    }
+  }
+
+  function submitAll() {
+    const err = document.getElementById('survey-error');
+    const n   = images.length;
+
+    if (collected.length !== n) {
+      err.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Date incomplete. Te rugăm reîncearcă.';
+      err.classList.add('show');
+      return;
+    }
+
+    for (let i = 0; i < n; i++) {
+      const a          = collected[i];
+      const rating     = parseInt(a.img_appreciation_rating, 10);
+      const complexity = parseInt(a.img_complexity_rating, 10);
+      if (!a.img_id) {
+        err.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> img_id lipsă la poziția ' + (i + 1) + '.';
+        err.classList.add('show'); return;
+      }
+      if (isNaN(rating) || rating < 1 || rating > 5) {
+        err.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Rating apreciere invalid la poziția ' + (i + 1) + '.';
+        err.classList.add('show'); return;
+      }
+      if (isNaN(complexity) || complexity < 1 || complexity > 5) {
+        err.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Rating complexitate invalid la poziția ' + (i + 1) + '.';
+        err.classList.add('show'); return;
+      }
+      if (VALID_AUTHORS.indexOf(a.img_author_guess) === -1) {
+        err.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Autor invalid la poziția ' + (i + 1) + '.';
+        err.classList.add('show'); return;
+      }
+    }
+
+    const btn = document.getElementById('btn-next');
+    btn.disabled = true;
+    btn.classList.add('loading');
+    btn.innerHTML = '<span class="btn-row"><i class="fa-solid fa-spinner fa-spin"></i> Se salvează…</span>';
+
+    google.script.run
+      .withSuccessHandler(function () { show('s-done'); })
+      .withFailureHandler(function (e) {
+        btn.disabled = false;
+        btn.classList.remove('loading');
+        btn.innerHTML = '<span class="btn-row"><i class="fa-solid fa-rotate-right"></i> Încearcă din nou</span>';
+        err.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Eroare la salvare. Verifică conexiunea.';
+        err.classList.add('show');
+        console.error(e);
+      })
+      .submitAllResponses({ age: userAge, profile: userProf, answers: collected });
+  }
+  </script>
+</body>
+
+</html>
